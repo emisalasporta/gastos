@@ -74,8 +74,32 @@ const CATALOGOS = {
 
 // --- App ---------------------------------------------------------------
 const app = express();
+app.set('trust proxy', 1); // corre detras de Traefik
 app.use(express.json({ limit: '256kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
+
+// --- Freno de fuerza bruta ---------------------------------------------
+// Un PIN de 4 digitos son 10.000 combinaciones: sin freno, un script las
+// prueba todas en minutos. Cinco intentos fallidos y esa IP queda afuera
+// 15 minutos. Un acierto limpia el contador.
+const intentos = new Map();
+const MAX_INTENTOS = 5;
+const BLOQUEO_MS = 15 * 60 * 1000;
+
+function ipDe(req) {
+  return (req.get('x-forwarded-for') || '').split(',')[0].trim() || req.ip || 'desconocida';
+}
+function bloqueado(ip) {
+  const r = intentos.get(ip);
+  if (!r) return false;
+  if (Date.now() - r.desde > BLOQUEO_MS) { intentos.delete(ip); return false; }
+  return r.fallos >= MAX_INTENTOS;
+}
+function anotarFallo(ip) {
+  const r = intentos.get(ip);
+  if (!r || Date.now() - r.desde > BLOQUEO_MS) intentos.set(ip, { fallos: 1, desde: Date.now() });
+  else r.fallos++;
+}
 
 function pinOk(req) {
   const p = req.get('x-pin') || req.body?.pin || req.query?.pin;
@@ -83,14 +107,20 @@ function pinOk(req) {
     crypto.timingSafeEqual(Buffer.from(p.padEnd(32).slice(0,32)), Buffer.from(PIN.padEnd(32).slice(0,32)));
 }
 function exigirPin(req, res, next) {
-  if (!pinOk(req)) return res.status(401).json({ error: 'PIN incorrecto' });
+  const ip = ipDe(req);
+  if (bloqueado(ip)) return res.status(429).json({ error: 'Demasiados intentos. Probá en 15 minutos.' });
+  if (!pinOk(req)) { anotarFallo(ip); return res.status(401).json({ error: 'PIN incorrecto' }); }
+  intentos.delete(ip);
   next();
 }
 
 app.get('/api/catalogos', (req, res) => res.json(CATALOGOS));
 
 app.post('/api/login', (req, res) => {
-  if (!pinOk(req)) return res.status(401).json({ ok: false });
+  const ip = ipDe(req);
+  if (bloqueado(ip)) return res.status(429).json({ ok: false, error: 'Demasiados intentos. Probá en 15 minutos.' });
+  if (!pinOk(req)) { anotarFallo(ip); return res.status(401).json({ ok: false }); }
+  intentos.delete(ip);
   res.json({ ok: true });
 });
 
@@ -163,7 +193,10 @@ app.delete('/api/mov/:id', exigirPin, (req, res) => {
 // Export para Alex: todo el historial en JSON, con token.
 // Se usa desde la conversacion, sin que Emiliano tenga que copiar nada.
 app.get('/api/export', (req, res) => {
-  if (req.query.token !== READ_TOKEN) return res.status(401).json({ error: 'token inválido' });
+  const ip = ipDe(req);
+  if (bloqueado(ip)) return res.status(429).json({ error: 'Demasiados intentos.' });
+  if (req.query.token !== READ_TOKEN) { anotarFallo(ip); return res.status(401).json({ error: 'token inválido' }); }
+  intentos.delete(ip);
   const movs = leer();
   const desde = req.query.desde, hasta = req.query.hasta;
   const filtrados = movs.filter(m =>
