@@ -2,3 +2,6 @@ node_modules/
 data/
 .env
 *.log
+
+# Tiene el PIN y el token en claro. El repo es publico: NO se sube.
+DESPLIEGUE.md

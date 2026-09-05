@@ -11,17 +11,20 @@
   --bg:#0a0b10; --surface:#12141c; --surface-2:#1a1d28; --line:#252a38;
   --text:#e7ecf3; --muted:#8a94a6;
   --accent:#2fb8ff; --on-accent:#062229; --gasto:#ff2e9a; --ingreso:#28d17c;
+  --aviso:#ffb02f;
   --r:14px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%}
+/* Sin esto, tocar rapido dos veces un boton en el celular selecciona el texto */
+button{user-select:none;-webkit-user-select:none}
+html,body{margin:0;min-height:100%}
 body{
   background:var(--bg); color:var(--text);
   font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  overscroll-behavior:none;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  overscroll-behavior-y:none;
 }
-.wrap{max-width:520px;margin:0 auto;padding:14px 14px 28px}
+.wrap{max-width:520px;margin:0 auto;padding:14px 14px 0}
 h1{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:600}
 .hide{display:none!important}
 
@@ -30,14 +33,14 @@ h1{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute
 .dots{display:flex;gap:14px;justify-content:center;margin:22px 0 30px}
 .dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--line)}
 .dot.on{background:var(--accent);border-color:var(--accent)}
-.err{color:var(--gasto);min-height:20px;font-size:14px;margin-top:14px}
+.err{color:var(--gasto);min-height:38px;font-size:14px;margin-top:14px;line-height:1.35}
 
 /* ---- Teclado ---- */
 .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:8px}
 .key{
   background:var(--surface-2);border:1px solid var(--line);color:var(--text);
-  font-size:25px;font-weight:500;padding:17px 0;border-radius:var(--r);cursor:pointer;
-  font-variant-numeric:tabular-nums;transition:background .08s;
+  font-size:25px;font-weight:500;padding:16px 0;border-radius:var(--r);cursor:pointer;
+  font-variant-numeric:tabular-nums;transition:background .08s;font-family:inherit;
 }
 .key:active{background:var(--accent);color:var(--on-accent)}
 .key.sec{font-size:18px;color:var(--muted)}
@@ -56,7 +59,7 @@ h1{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute
 .toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .toggle button{
   background:var(--surface);border:1px solid var(--line);color:var(--muted);
-  padding:13px;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer}
+  padding:13px;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit}
 .toggle button[aria-pressed=true]{background:var(--gasto);color:#fff;border-color:var(--gasto)}
 .toggle button.ing[aria-pressed=true]{background:var(--ingreso);color:#04361f;border-color:var(--ingreso)}
 
@@ -64,7 +67,7 @@ h1{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute
 .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .chip{
   background:var(--surface);border:1px solid var(--line);color:var(--text);
-  border-radius:var(--r);padding:11px 4px;font-size:11px;cursor:pointer;
+  border-radius:var(--r);padding:11px 4px;font-size:11px;cursor:pointer;font-family:inherit;
   display:flex;flex-direction:column;align-items:center;gap:5px;line-height:1.15;min-height:66px;
   justify-content:center;text-align:center}
 .chip .em{font-size:21px;line-height:1}
@@ -74,45 +77,83 @@ h1{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute
 .chip.tarjeta[aria-pressed=true]{border-color:var(--gasto);background:#2a0e1e;color:var(--gasto)}
 .opt{text-transform:none;letter-spacing:0;color:#5c6473;font-weight:400}
 .oculto{display:none}
-.chip.otra[aria-pressed=true]{border-color:#ffb02f;background:#2a2110;color:#ffb02f}
-.chip.limpiar{opacity:.7}
-.sinclas{display:inline-block;background:#2a2110;color:#ffb02f;font-size:10px;
+.chip.otra[aria-pressed=true]{border-color:var(--aviso);background:#2a2110;color:var(--aviso)}
+.sinclas{display:inline-block;background:#2a2110;color:var(--aviso);font-size:10px;
+  padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle}
+.pend{display:inline-block;background:#0e2a3a;color:var(--accent);font-size:10px;
   padding:2px 6px;border-radius:6px;margin-left:6px;vertical-align:middle}
 .sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:18px 0 8px}
 
 input[type=text],input[type=date]{
   width:100%;background:var(--surface);border:1px solid var(--line);color:var(--text);
-  border-radius:var(--r);padding:13px;font-size:15px;font-family:inherit}
+  border-radius:var(--r);padding:13px;font-size:16px;font-family:inherit}
 input:focus{outline:2px solid var(--accent);outline-offset:-2px}
 
+/* ---- Fecha ---- */
+.fila-fecha{display:flex;gap:8px;align-items:center}
+.fila-fecha input{flex:1}
+.btn-hoy{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+  border-radius:var(--r);padding:13px 15px;font-size:14px;font-weight:600;cursor:pointer;
+  font-family:inherit;white-space:nowrap}
+.btn-hoy.activo{border-color:var(--aviso);color:var(--aviso)}
+.aviso-fecha{color:var(--aviso);font-size:13px;margin-top:8px}
+
+/* ---- Barra de guardar: siempre visible, no hay que scrollear ---- */
+.barra{position:sticky;bottom:0;margin:18px -14px 0;padding:12px 14px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--bg) 62%,rgba(10,11,16,0));z-index:5}
 .guardar{
   width:100%;background:var(--accent);color:var(--on-accent);border:0;border-radius:var(--r);
-  padding:17px;font-size:17px;font-weight:700;margin-top:18px;cursor:pointer}
+  padding:17px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
 .guardar:disabled{background:var(--surface-2);color:var(--muted)}
 
 /* ---- Lista ---- */
 .item{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
-.item .em{font-size:19px}
+.item .em{font-size:19px;width:24px;text-align:center;flex:none}
 .item .txt{flex:1;min-width:0}
 .item .t1{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .item .t2{font-size:11px;color:var(--muted)}
-.item .mto{font-variant-numeric:tabular-nums;font-weight:600;font-size:15px}
+.item .mto{font-variant-numeric:tabular-nums;font-weight:600;font-size:15px;white-space:nowrap}
 .item .mto.gasto{color:var(--gasto)} .item .mto.ingreso{color:var(--ingreso)}
-.item .del{background:none;border:0;color:var(--muted);font-size:19px;cursor:pointer;padding:4px 6px}
+.item .del{background:none;border:0;color:var(--muted);font-size:19px;cursor:pointer;padding:4px 6px;
+  font-family:inherit}
 .tot{display:flex;justify-content:space-between;padding:13px 0;font-size:14px;color:var(--muted);
   border-bottom:2px solid var(--line);margin-bottom:4px}
 .tot b{color:var(--text);font-variant-numeric:tabular-nums}
-.vacio{color:var(--muted);font-size:14px;padding:20px 0;text-align:center}
+.vacio{color:var(--muted);font-size:14px;padding:26px 0;text-align:center;line-height:1.5}
+.dia{margin-top:22px}
+.dia-cab{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:8px 0;border-bottom:2px solid var(--line)}
+.dia-cab .f{font-size:13px;font-weight:600}
+.dia-cab .n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dia-cab .n .g{color:var(--gasto)} .dia-cab .n .i{color:var(--ingreso)}
+.resumen{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:center}
+.resumen div{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.resumen b{display:block;font-size:19px;font-variant-numeric:tabular-nums;margin-top:4px}
+.resumen .g b{color:var(--gasto)} .resumen .i b{color:var(--ingreso)}
+.fin{text-align:center;color:var(--muted);font-size:12px;padding:22px 0 8px}
 
-.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:16px}
 .tabs button{background:none;border:0;border-bottom:2px solid var(--line);color:var(--muted);
-  padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  padding:11px 4px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 .tabs button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}
 
-.ok{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:var(--ingreso);
-  color:#04361f;padding:13px 26px;border-radius:99px;font-weight:700;font-size:15px;
-  opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
+/* ---- Cartel de estado ---- */
+.ok{position:fixed;left:50%;transform:translateX(-50%);bottom:96px;
+  background:var(--ingreso);color:#04361f;padding:12px 22px;border-radius:99px;
+  font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;
+  max-width:92vw;text-align:center;line-height:1.3}
 .ok.show{opacity:1}
+.ok.aviso{background:var(--aviso);color:#2a2110}
+.ok.malo{background:var(--gasto);color:#fff}
+
+/* Barra de pendientes: si algo quedo sin enviar, se ve siempre */
+.pendientes{background:#0e2a3a;border:1px solid var(--accent);color:var(--accent);
+  border-radius:var(--r);padding:11px 13px;font-size:13px;margin-bottom:14px;
+  display:flex;align-items:center;gap:10px}
+.pendientes button{margin-left:auto;background:var(--accent);color:var(--on-accent);border:0;
+  border-radius:9px;padding:7px 13px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
 </style>
 </head>
 <body>
@@ -132,6 +173,12 @@ input:focus{outline:2px solid var(--accent);outline-offset:-2px}
     <div class="tabs">
       <button id="tab-cargar" aria-pressed="true">Cargar</button>
       <button id="tab-hoy" aria-pressed="false">Hoy</button>
+      <button id="tab-historial" aria-pressed="false">Historial</button>
+    </div>
+
+    <div class="pendientes hide" id="barra-pend">
+      <span id="txt-pend"></span>
+      <button id="btn-reintentar">Enviar</button>
     </div>
 
     <!-- CARGAR -->
@@ -149,26 +196,43 @@ input:focus{outline:2px solid var(--accent);outline-offset:-2px}
       <div class="pad" id="num-pad"></div>
 
       <div class="sub">¿Qué fue?</div>
-      <input type="text" id="detalle" placeholder="Ej: verdulería, nafta, regalo para Ani…" maxlength="200">
+      <input type="text" id="detalle" placeholder="Ej: verdulería, nafta, regalo para Ani…"
+             maxlength="200" enterkeyhint="done" autocomplete="off">
 
       <div class="sub">Categoría <span class="opt">— si no sabés, dejalo vacío</span></div>
       <div class="grid" id="cats"></div>
-      <input type="text" id="cat-libre" class="oculto" placeholder="Escribí la categoría" maxlength="60">
+      <input type="text" id="cat-libre" class="oculto" placeholder="Escribí la categoría"
+             maxlength="60" enterkeyhint="done" autocomplete="off">
 
       <div class="sub">Medio de pago <span class="opt">— opcional</span></div>
       <div class="grid medios" id="medios"></div>
 
       <div class="sub">Fecha</div>
-      <input type="date" id="fecha">
+      <div class="fila-fecha">
+        <input type="date" id="fecha">
+        <button class="btn-hoy" id="btn-fecha-hoy">Hoy</button>
+      </div>
+      <div class="aviso-fecha hide" id="aviso-fecha"></div>
 
-      <button class="guardar" id="guardar" disabled>Guardar</button>
+      <div class="barra">
+        <button class="guardar" id="guardar" disabled>Guardar</button>
+      </div>
     </div>
 
     <!-- HOY -->
     <div id="view-hoy" class="hide">
-      <div class="tot"><span>Gastos de hoy</span><b id="tot-gasto">$0</b></div>
-      <div class="tot"><span>Ingresos de hoy</span><b id="tot-ingreso">$0</b></div>
+      <div class="tot"><span>Gastos de hoy</span><b id="tot-gasto">$0,00</b></div>
+      <div class="tot"><span>Ingresos de hoy</span><b id="tot-ingreso">$0,00</b></div>
       <div id="lista"></div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div id="view-historial" class="hide">
+      <div class="resumen">
+        <div class="g">Gastado en total<b id="h-gasto">$0,00</b></div>
+        <div class="i">Ingresado en total<b id="h-ingreso">$0,00</b></div>
+      </div>
+      <div id="historial"></div>
     </div>
   </section>
 </div>
@@ -177,13 +241,60 @@ input:focus{outline:2px solid var(--accent);outline-offset:-2px}
 
 <script>
 const $ = s => document.querySelector(s);
-const fmt = n => '$' + n.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2});
+// Los importes redondos se muestran sin centavos ($16.000) porque asi los piensa
+// Emiliano. Solo se muestran los centavos cuando el numero de verdad los tiene.
+const fmt = n => {
+  const v = Number(n || 0);
+  return '$' + v.toLocaleString('es-AR', {
+    minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits: 2 });
+};
+const esc = s => String(s == null ? '' : s).replace(/[<>&"']/g,
+  c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+// Fecha en la hora del celular, formato YYYY-MM-DD. Se arma a mano a proposito:
+// toISOString() devuelve la fecha en UTC, que despues de las 21:00 en Argentina
+// ya es el dia siguiente. Ese era exactamente el bug de la pestaña "Hoy".
+const dosDigitos = n => String(n).padStart(2, '0');
+const fechaDe = d => `${d.getFullYear()}-${dosDigitos(d.getMonth()+1)}-${dosDigitos(d.getDate())}`;
+const hoyStr = () => fechaDe(new Date());
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : 'c-' + Date.now() + '-' + Math.random().toString(36).slice(2));
 
-let PIN = sessionStorage.getItem('pin') || '';
-let cat = {};        // catalogos
+// El PIN queda guardado en el celular: tener que reescribirlo cada vez que se
+// abre la app es friccion, y la friccion es lo que hace que no se use.
+let PIN = localStorage.getItem('pin') || '';
+let cat = null;      // catalogos
 let tipo = 'gasto';
 let monto = '';      // string de digitos, los ultimos 2 son centavos
 let catSel = null, medioSel = null;
+let vistaActual = 'cargar';
+
+// ---------- Cola de pendientes ----------
+// Si no hay señal, el gasto se guarda en el celular y se manda solo cuando
+// vuelve. Nunca se pierde nada: primero se escribe en la cola y recien despues
+// se intenta enviar.
+const CLAVE_COLA = 'pendientes-v1';
+function cola(){ try { const c = JSON.parse(localStorage.getItem(CLAVE_COLA) || '[]'); return Array.isArray(c) ? c : []; } catch { return []; } }
+function guardarCola(c){ try { localStorage.setItem(CLAVE_COLA, JSON.stringify(c)); } catch {} }
+function encolar(mov){ const c = cola(); c.push(mov); guardarCola(c); pintarPendientes(); }
+function desencolar(clientId){ guardarCola(cola().filter(m => m.clientId !== clientId)); pintarPendientes(); }
+
+function pintarPendientes(){
+  const n = cola().length;
+  $('#barra-pend').classList.toggle('hide', n === 0);
+  if (n) $('#txt-pend').textContent = n === 1
+    ? '1 movimiento sin enviar'
+    : n + ' movimientos sin enviar';
+}
+
+// ---------- Cartel ----------
+let timerCartel = null;
+function cartel(texto, clase = ''){
+  const el = $('#ok');
+  el.className = 'ok show ' + clase;
+  el.textContent = texto;
+  clearTimeout(timerCartel);
+  timerCartel = setTimeout(() => el.classList.remove('show'), 2600);
+}
 
 // ---------- PIN ----------
 let pinBuf = '';
@@ -193,48 +304,81 @@ function pintarDots(){
 }
 function armarPad(el, extra){
   el.innerHTML = ['1','2','3','4','5','6','7','8','9', extra[0],'0', extra[1]]
-    .map(k => `<button class="key ${k.length>1?'sec':''}" data-k="${k}">${k}</button>`).join('');
+    .map(k => `<button class="key ${k.length>1?'sec':''}" data-k="${k}" type="button">${k}</button>`).join('');
 }
 armarPad($('#pin-pad'), ['','⌫']);
 pintarDots();
 $('#pin-pad').addEventListener('click', e => {
-  const k = e.target.dataset.k; if (k === undefined) return;
+  const b = e.target.closest('.key'); if (!b) return;
+  const k = b.dataset.k;
   if (k === '⌫') pinBuf = pinBuf.slice(0,-1);
   else if (k !== '' && pinBuf.length < 4) pinBuf += k;
   pintarDots();
   if (pinBuf.length === 4) probarPin(pinBuf);
 });
+
 async function probarPin(p){
-  const r = await fetch('/api/login', {method:'POST', headers:{'content-type':'application/json','x-pin':p}, body:'{}'});
-  if (r.ok){ PIN = p; sessionStorage.setItem('pin', p); entrar(); }
-  else { $('#pin-err').textContent = 'PIN incorrecto'; pinBuf=''; pintarDots();
-         setTimeout(()=>$('#pin-err').textContent='', 1800); }
+  try {
+    const r = await fetch('/api/login', {
+      method:'POST', headers:{'content-type':'application/json','x-pin':p}, body:'{}'});
+    if (r.ok){ PIN = p; localStorage.setItem('pin', p); entrar(); return; }
+    if (r.status === 429){ errorPin('Demasiados intentos.\nProbá de nuevo en 15 minutos.'); return; }
+    localStorage.removeItem('pin');
+    errorPin('PIN incorrecto');
+  } catch {
+    // Sin señal no se puede validar contra el servidor. Si es el PIN que ya
+    // estaba guardado, se entra igual: la app funciona sin conexion.
+    if (p === localStorage.getItem('pin')) { PIN = p; entrar(); }
+    else errorPin('Sin conexión. Probá cuando tengas señal.');
+  }
+}
+function errorPin(msg){
+  $('#pin-err').textContent = msg;
+  pinBuf = ''; pintarDots();
+  setTimeout(() => { $('#pin-err').textContent = ''; }, 3200);
 }
 
-// ---------- App ----------
+// ---------- Entrar ----------
 async function entrar(){
   $('#pin-view').classList.add('hide');
   $('#app').classList.remove('hide');
-  cat = await (await fetch('/api/catalogos')).json();
+
+  // Los catalogos se guardan en el celular para que la app abra sin señal.
+  try {
+    const r = await fetch('/api/catalogos');
+    if (r.ok){ cat = await r.json(); localStorage.setItem('catalogos', JSON.stringify(cat)); }
+  } catch {}
+  if (!cat){
+    try { cat = JSON.parse(localStorage.getItem('catalogos') || 'null'); } catch {}
+  }
+  if (!cat){
+    cartel('No se pudieron cargar las categorías', 'malo');
+    return;
+  }
+
   pintarCats(); pintarMedios();
-  $('#fecha').value = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
+  ponerFechaHoy();
+  pintarMonto(); revisar();
+  pintarPendientes();
+  sincronizar();
 }
 if (PIN) probarPin(PIN);
 
+// ---------- Categorias y medios ----------
 function pintarCats(){
   const lista = tipo === 'gasto' ? cat.categoriasGasto : cat.categoriasIngreso;
   const chips = lista.map(c =>
-    `<button class="chip" data-id="${c.id}" aria-pressed="${catSel===c.id}">
-       <span class="em">${c.emoji}</span>${c.nombre}</button>`).join('');
+    `<button type="button" class="chip" data-id="${esc(c.id)}" aria-pressed="${catSel===c.id}">
+       <span class="em">${c.emoji}</span>${esc(c.nombre)}</button>`).join('');
   // "Otra" abre un campo de texto: la lista no encierra a Emiliano.
   $('#cats').innerHTML = chips +
-    `<button class="chip otra" data-id="__otra" aria-pressed="${catSel==='__otra'}">
+    `<button type="button" class="chip otra" data-id="__otra" aria-pressed="${catSel==='__otra'}">
        <span class="em">✏️</span>Otra</button>`;
   $('#cat-libre').classList.toggle('oculto', catSel !== '__otra');
 }
 function pintarMedios(){
   $('#medios').innerHTML = cat.medios.map(m =>
-    `<button class="chip ${m.tipo}" data-id="${m.id}" aria-pressed="${medioSel===m.id}">${m.nombre}</button>`).join('');
+    `<button type="button" class="chip ${esc(m.tipo)}" data-id="${esc(m.id)}" aria-pressed="${medioSel===m.id}">${esc(m.nombre)}</button>`).join('');
 }
 $('#cats').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if(!b) return;
@@ -242,7 +386,6 @@ $('#cats').addEventListener('click', e => {
   catSel = (catSel === b.dataset.id) ? null : b.dataset.id;
   pintarCats();
   if (catSel === '__otra') $('#cat-libre').focus();
-  revisar();
 });
 $('#medios').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if(!b) return;
@@ -250,89 +393,315 @@ $('#medios').addEventListener('click', e => {
   pintarMedios();
 });
 
-// Tipo
+// ---------- Tipo ----------
 function setTipo(t){
   tipo = t; catSel = null;
   $('#b-gasto').setAttribute('aria-pressed', t==='gasto');
   $('#b-ingreso').setAttribute('aria-pressed', t==='ingreso');
   $('#monto-box').className = 'monto ' + t;
-  pintarCats(); revisar();
+  pintarCats();
 }
 $('#b-gasto').onclick = () => setTipo('gasto');
 $('#b-ingreso').onclick = () => setTipo('ingreso');
 
-// Monto: se tipea de derecha a izquierda, como una calculadora de comercio.
+// ---------- Monto ----------
+// Se tipea en pesos enteros: para $16.000 se teclea 16000, no 1600000. Antes los
+// dos ultimos digitos eran centavos y obligaba a poner dos ceros de mas en cada
+// gasto. Los gastos del dia a dia no tienen centavos.
+// La tecla "000" existe porque en Argentina casi todo termina en miles.
+const MAX_DIGITOS = 9;   // hasta $999.999.999
 armarPad($('#num-pad'), ['000','⌫']);
 $('#num-pad').addEventListener('click', e => {
-  const k = e.target.dataset.k; if (k === undefined) return;
+  const b = e.target.closest('.key'); if (!b) return;
+  const k = b.dataset.k;
   if (k === '⌫') monto = monto.slice(0,-1);
-  else if (k === '000') monto = (monto + '000').slice(0,11);
-  else monto = (monto + k).slice(0,11);
+  else if (k === '000') monto = (monto + '000').slice(0, MAX_DIGITOS);
+  else monto = (monto + k).slice(0, MAX_DIGITOS);
+  monto = monto.replace(/^0+(?=\d)/, '');   // sin ceros a la izquierda
   pintarMonto(); revisar();
 });
-function valorMonto(){ return monto ? parseInt(monto,10)/100 : 0; }
+function valorMonto(){ return monto ? parseInt(monto,10) : 0; }
 function pintarMonto(){ $('#monto-val').textContent = monto ? fmt(valorMonto()) : '0'; }
 // Lo unico obligatorio es el monto. Todo lo demas es opcional.
 function revisar(){ $('#guardar').disabled = !(valorMonto() > 0); }
 
-// Guardar
+// ---------- Fecha ----------
+function ponerFechaHoy(){ $('#fecha').value = hoyStr(); revisarFecha(); }
+function revisarFecha(){
+  const f = $('#fecha').value;
+  const esHoy = f === hoyStr();
+  $('#btn-fecha-hoy').classList.toggle('activo', !esHoy);
+  $('#aviso-fecha').classList.toggle('hide', esHoy);
+  if (!esHoy && f) $('#aviso-fecha').textContent = '⚠ Vas a anotar con fecha ' + enPalabras(f) + ', no hoy.';
+}
+$('#fecha').addEventListener('change', revisarFecha);
+$('#btn-fecha-hoy').onclick = ponerFechaHoy;
+
+const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+               'septiembre','octubre','noviembre','diciembre'];
+// Se parsea a mano y no con new Date(f): 'YYYY-MM-DD' lo interpreta como UTC y
+// en Argentina eso muestra el dia anterior.
+function enPalabras(f){
+  const [a,m,d] = f.split('-').map(Number);
+  if (!a || !m || !d) return f;
+  const dt = new Date(a, m-1, d);
+  return `${DIAS[dt.getDay()]} ${d} de ${MESES[m-1]}`;
+}
+const conMayuscula = s => s.charAt(0).toUpperCase() + s.slice(1);
+function tituloDia(f, hoy){
+  if (f === hoy) return 'Hoy';
+  const [a,m,d] = hoy.split('-').map(Number);
+  const ayer = fechaDe(new Date(a, m-1, d - 1));
+  if (f === ayer) return 'Ayer';
+  const [aa,mm,dd] = f.split('-').map(Number);
+  const dt = new Date(aa, mm-1, dd);
+  const conAnio = aa !== a ? ` de ${aa}` : '';
+  return conMayuscula(`${DIAS[dt.getDay()]} ${dd} de ${MESES[mm-1]}${conAnio}`);
+}
+
+// ---------- Guardar ----------
 $('#guardar').onclick = async () => {
-  const btn = $('#guardar'); btn.disabled = true;
-  const r = await fetch('/api/mov', {
-    method:'POST', headers:{'content-type':'application/json','x-pin':PIN},
-    body: JSON.stringify({ tipo, monto: valorMonto(),
-      categoria: (catSel && catSel !== '__otra') ? catSel : null,
-      categoriaLibre: catSel === '__otra' ? $('#cat-libre').value : '',
-      medio: medioSel, detalle: $('#detalle').value, fecha: $('#fecha').value })
-  });
-  if (r.ok){
-    monto=''; catSel=null; $('#detalle').value=''; $('#cat-libre').value='';
-    pintarMonto(); pintarCats(); revisar();
-    $('#ok').classList.add('show'); setTimeout(()=>$('#ok').classList.remove('show'), 1200);
+  const btn = $('#guardar');
+  if (btn.disabled) return;
+  const valor = valorMonto();
+  if (!(valor > 0)) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  const mov = {
+    clientId: uuid(),
+    tipo,
+    monto: valor,
+    categoria: (catSel && catSel !== '__otra') ? catSel : null,
+    categoriaLibre: catSel === '__otra' ? $('#cat-libre').value.trim() : '',
+    medio: medioSel,
+    detalle: $('#detalle').value.trim(),
+    fecha: $('#fecha').value || hoyStr()
+  };
+
+  // Primero a la cola, despues se intenta enviar. Si el celular se apaga entre
+  // una cosa y la otra, el gasto sigue estando.
+  encolar(mov);
+  const res = await enviar(mov);
+
+  btn.textContent = 'Guardar';
+
+  if (res === 'ok'){
+    desencolar(mov.clientId);
+    cartel('Guardado');
     if (navigator.vibrate) navigator.vibrate(40);
-  } else { alert('No se pudo guardar'); btn.disabled = false; }
+  } else if (res === 'rechazado'){
+    desencolar(mov.clientId);
+    cartel('El servidor rechazó el movimiento. Revisá el monto.', 'malo');
+    btn.disabled = false;
+    return;
+  } else if (res === 'pin'){
+    cartel('El PIN dejó de valer. Queda guardado y se envía cuando entres.', 'aviso');
+  } else {
+    cartel('Sin señal: queda guardado y se envía solo', 'aviso');
+    if (navigator.vibrate) navigator.vibrate(40);
+  }
+
+  // Limpieza para el siguiente. El medio de pago se mantiene a proposito:
+  // normalmente se pagan varias cosas seguidas con lo mismo.
+  monto = ''; catSel = null;
+  $('#detalle').value = ''; $('#cat-libre').value = '';
+  pintarMonto(); pintarCats(); revisar();
+  ponerFechaHoy();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// Tabs
+// Devuelve 'ok' | 'rechazado' | 'pin' | 'red'
+async function enviar(mov){
+  try {
+    const r = await fetch('/api/mov', {
+      method:'POST',
+      headers:{'content-type':'application/json','x-pin':PIN},
+      body: JSON.stringify(mov)
+    });
+    if (r.ok) return 'ok';
+    if (r.status === 401 || r.status === 429) return 'pin';
+    if (r.status >= 400 && r.status < 500) return 'rechazado';
+    return 'red';   // 5xx: el servidor esta mal, se reintenta despues
+  } catch {
+    return 'red';   // sin señal
+  }
+}
+
+// Vacia la cola. Se llama al abrir la app, al volver la señal y a mano.
+let sincronizando = false;
+async function sincronizar(avisar){
+  if (sincronizando || !PIN) return;
+  const pendientes = cola();
+  if (!pendientes.length) return;
+  sincronizando = true;
+  let enviados = 0, corto = false;
+  for (const mov of pendientes){
+    const res = await enviar(mov);
+    if (res === 'ok' || res === 'rechazado'){ desencolar(mov.clientId); enviados++; }
+    else { corto = true; break; }   // sin señal o PIN: se corta y se reintenta luego
+  }
+  sincronizando = false;
+  pintarPendientes();
+  if (enviados && !corto){
+    cartel(enviados === 1 ? 'Se envió 1 movimiento pendiente' : `Se enviaron ${enviados} pendientes`);
+    if (vistaActual === 'hoy') cargarHoy();
+    if (vistaActual === 'historial') cargarHistorial();
+  } else if (corto && avisar){
+    cartel('Todavía sin señal. Se reintenta solo.', 'aviso');
+  }
+}
+$('#btn-reintentar').onclick = () => sincronizar(true);
+window.addEventListener('online', () => sincronizar());
+document.addEventListener('visibilitychange', () => { if (!document.hidden) sincronizar(); });
+
+// ---------- Tabs ----------
 $('#tab-cargar').onclick = () => mostrar('cargar');
 $('#tab-hoy').onclick = () => mostrar('hoy');
+$('#tab-historial').onclick = () => mostrar('historial');
 function mostrar(v){
+  vistaActual = v;
   $('#tab-cargar').setAttribute('aria-pressed', v==='cargar');
   $('#tab-hoy').setAttribute('aria-pressed', v==='hoy');
+  $('#tab-historial').setAttribute('aria-pressed', v==='historial');
   $('#view-cargar').classList.toggle('hide', v!=='cargar');
   $('#view-hoy').classList.toggle('hide', v!=='hoy');
+  $('#view-historial').classList.toggle('hide', v!=='historial');
+  window.scrollTo({ top: 0 });
   if (v==='hoy') cargarHoy();
+  if (v==='historial') cargarHistorial();
 }
-async function cargarHoy(){
-  const movs = await (await fetch('/api/mov/hoy', {headers:{'x-pin':PIN}})).json();
+
+// ---------- Pintar movimientos ----------
+function emojiDe(id){
   const todas = [...cat.categoriasGasto, ...cat.categoriasIngreso];
-  const em = id => (todas.find(c=>c.id===id)||{}).emoji || '❔';
-  const nom = id => (todas.find(c=>c.id===id)||{}).nombre || id;
-  const medio = id => id ? ((cat.medios.find(m=>m.id===id)||{}).nombre || id) : 'sin medio';
-  const etiqueta = m => m.categoriaLibre || (m.categoria ? nom(m.categoria) : null);
+  return (todas.find(c => c.id === id) || {}).emoji || '❔';
+}
+function nombreCat(id){
+  const todas = [...cat.categoriasGasto, ...cat.categoriasIngreso];
+  return (todas.find(c => c.id === id) || {}).nombre || id;
+}
+function nombreMedio(id){
+  if (!id) return 'sin medio';
+  return (cat.medios.find(m => m.id === id) || {}).nombre || id;
+}
+function etiquetaDe(m){ return m.categoriaLibre || (m.categoria ? nombreCat(m.categoria) : null); }
+
+function pintarItem(m){
+  const et = etiquetaDe(m);
+  const segundaLinea = et
+    ? (m.detalle ? esc(et) + ' · ' : '') + esc(nombreMedio(m.medio))
+    : '<span class="sinclas">a clasificar</span> ' + esc(nombreMedio(m.medio));
+  const marcaPendiente = m.pendiente ? '<span class="pend">sin enviar</span>' : '';
+  const botonBorrar = m.pendiente ? '' :
+    `<button type="button" class="del" data-id="${esc(m.id)}" title="Borrar">×</button>`;
+  return `
+    <div class="item">
+      <span class="em">${m.categoriaLibre ? '✏️' : emojiDe(m.categoria)}</span>
+      <div class="txt">
+        <div class="t1">${esc(m.detalle || et || 'Sin detalle')}${marcaPendiente}</div>
+        <div class="t2">${segundaLinea}</div>
+      </div>
+      <span class="mto ${esc(m.tipo)}">${m.tipo==='gasto'?'−':'+'}${fmt(m.monto)}</span>
+      ${botonBorrar}
+    </div>`;
+}
+
+// Lo que todavia no se envio se muestra igual, marcado, para que Emiliano vea
+// siempre todo lo que anoto y no dude de si quedo o no.
+function pendientesDe(fecha){
+  return cola().filter(m => m.fecha === fecha).map(m => ({...m, pendiente:true})).reverse();
+}
+
+// ---------- Hoy ----------
+async function cargarHoy(){
+  const hoy = hoyStr();
+  let datos = null;
+  try {
+    const r = await fetch('/api/mov/hoy', {headers:{'x-pin':PIN}});
+    if (r.ok) datos = await r.json();
+  } catch {}
+
+  const pend = pendientesDe(hoy);
+  if (!datos){
+    // Sin señal: al menos se muestra lo que todavia no se envio.
+    $('#tot-gasto').textContent = fmt(pend.filter(m=>m.tipo==='gasto').reduce((a,m)=>a+m.monto,0));
+    $('#tot-ingreso').textContent = fmt(pend.filter(m=>m.tipo==='ingreso').reduce((a,m)=>a+m.monto,0));
+    $('#lista').innerHTML = (pend.length ? pend.map(pintarItem).join('') : '') +
+      '<div class="vacio">Sin conexión. Se muestra solo lo que está sin enviar.</div>';
+    return;
+  }
+
+  const movs = [...pend, ...datos.movimientos];
   const suma = t => movs.filter(m=>m.tipo===t).reduce((a,m)=>a+m.monto,0);
   $('#tot-gasto').textContent = fmt(suma('gasto'));
   $('#tot-ingreso').textContent = fmt(suma('ingreso'));
-  $('#lista').innerHTML = movs.length ? movs.map(m => `
-    <div class="item">
-      <span class="em">${m.categoriaLibre ? '✏️' : em(m.categoria)}</span>
-      <div class="txt">
-        <div class="t1">${esc(m.detalle || etiqueta(m) || 'Sin detalle')}</div>
-        <div class="t2">${etiqueta(m)
-          ? (m.detalle ? esc(etiqueta(m))+' · ' : '') + medio(m.medio)
-          : '<span class="sinclas">a clasificar</span> ' + medio(m.medio)}</div>
-      </div>
-      <span class="mto ${m.tipo}">${m.tipo==='gasto'?'−':'+'}${fmt(m.monto)}</span>
-      <button class="del" data-id="${m.id}" title="Borrar">×</button>
-    </div>`).join('') : '<div class="vacio">Todavía no cargaste nada hoy</div>';
+  $('#lista').innerHTML = movs.length
+    ? movs.map(pintarItem).join('')
+    : '<div class="vacio">Todavía no cargaste nada hoy.<br>Lo de días anteriores está en Historial.</div>';
 }
-function esc(s){ return s.replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
-$('#lista').addEventListener('click', async e => {
+
+// ---------- Historial ----------
+async function cargarHistorial(){
+  let datos = null;
+  try {
+    const r = await fetch('/api/mov/historial', {headers:{'x-pin':PIN}});
+    if (r.ok) datos = await r.json();
+  } catch {}
+
+  if (!datos){
+    $('#historial').innerHTML = '<div class="vacio">Sin conexión.<br>El historial se ve cuando vuelva la señal.</div>';
+    return;
+  }
+
+  $('#h-gasto').textContent = fmt(datos.totalGastos);
+  $('#h-ingreso').textContent = fmt(datos.totalIngresos);
+
+  if (!datos.dias.length){
+    $('#historial').innerHTML = '<div class="vacio">Todavía no hay nada anotado.</div>';
+    return;
+  }
+
+  $('#historial').innerHTML = datos.dias.map(d => {
+    const pend = pendientesDe(d.fecha);
+    const totG = d.totalGastos + pend.filter(m=>m.tipo==='gasto').reduce((a,m)=>a+m.monto,0);
+    const totI = d.totalIngresos + pend.filter(m=>m.tipo==='ingreso').reduce((a,m)=>a+m.monto,0);
+    const cifras = [
+      totG ? `<span class="g">−${fmt(totG)}</span>` : '',
+      totI ? `<span class="i">+${fmt(totI)}</span>` : ''
+    ].filter(Boolean).join(' &nbsp; ') || '—';
+    return `<div class="dia">
+      <div class="dia-cab">
+        <span class="f">${esc(tituloDia(d.fecha, datos.hoy))}</span>
+        <span class="n">${cifras}</span>
+      </div>
+      ${[...pend, ...d.movimientos].map(pintarItem).join('')}
+    </div>`;
+  }).join('') +
+  `<div class="fin">${datos.cantidad} movimiento${datos.cantidad===1?'':'s'} en total · ${datos.diasMostrados} día${datos.diasMostrados===1?'':'s'}</div>`;
+}
+
+// ---------- Borrar ----------
+async function borrar(e){
   const b = e.target.closest('.del'); if(!b) return;
   if (!confirm('¿Borrar este movimiento?')) return;
-  await fetch('/api/mov/'+b.dataset.id, {method:'DELETE', headers:{'x-pin':PIN}});
-  cargarHoy();
-});
+  try {
+    const r = await fetch('/api/mov/'+b.dataset.id, {method:'DELETE', headers:{'x-pin':PIN}});
+    if (!r.ok) { cartel('No se pudo borrar', 'malo'); return; }
+  } catch { cartel('Sin señal: no se pudo borrar', 'malo'); return; }
+  if (vistaActual === 'hoy') cargarHoy(); else cargarHistorial();
+}
+$('#lista').addEventListener('click', borrar);
+$('#historial').addEventListener('click', borrar);
+
+// ---------- Service worker ----------
+// Sirve para que la app abra sin señal. Sin esto, la cola de pendientes no
+// tendria sentido: no se podria ni entrar para anotar.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
 </script>
 </body>
 </html>

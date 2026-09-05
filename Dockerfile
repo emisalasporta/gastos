@@ -18,6 +18,9 @@ COPY . .
 RUN mkdir -p /app/data
 ENV DATA_DIR=/app/data
 ENV PORT=3000
+# El contenedor corre en UTC. Emiliano vive en Argentina: sin esto, todo lo que
+# carga despues de las 21:00 queda fechado el dia siguiente.
+ENV TZ=America/Argentina/Buenos_Aires
 EXPOSE 3000
 
 CMD ["node", "server.js"]

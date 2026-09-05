@@ -15,6 +15,11 @@ operador de su propio sistema contable. Esta app hace **una sola cosa**: anotar.
 presupuestos, ni proyecciones, ni categorías automáticas. Todo el análisis lo hace Alex desde la
 conversación leyendo `/api/export`. Cada cosa que se sume acá es una razón más para no abrirla.
 
+La app tiene tres pantallas y no debería tener una cuarta: **Cargar** (anotar), **Hoy** (revisar y
+corregir lo del día) e **Historial** (ver lo anotado antes, agrupado por día). Historial no es
+análisis: es poder confiar en que lo que anotaste está. Sin eso Emiliano no sabía si la app
+guardaba, que es peor que no tenerla.
+
 ## Stack
 
 - **Node 22 + Express**, sin build, sin framework de frontend.
@@ -50,13 +55,45 @@ conversación leyendo `/api/export`. Cada cosa que se sume acá es una razón m�
 | GET | `/api/catalogos` | — | Categorías y medios de pago |
 | POST | `/api/login` | PIN | Valida el PIN |
 | POST | `/api/mov` | PIN | Carga un movimiento |
-| GET | `/api/mov/hoy` | PIN | Lo cargado hoy |
-| GET | `/api/mov/ultimos` | PIN | Últimos 30 |
+| GET | `/api/mov/hoy` | PIN | Lo cargado hoy, con totales |
+| GET | `/api/mov/historial?dias=90` | PIN | Todo, agrupado por día, del más nuevo al más viejo |
+| PATCH | `/api/mov/:id?token=…` | token | Reclasificar (`categoriaAlex`). Lo usa Alex |
 | DELETE | `/api/mov/:id` | PIN | Borra uno |
 | GET | `/api/export?token=…` | token | **Todo el historial en JSON — esto lee Alex** |
 | GET | `/api/salud` | — | Chequeo |
 
 El PIN va en el header `x-pin`. `/api/export` acepta `?desde=YYYY-MM-DD&hasta=YYYY-MM-DD`.
+
+## Tres cosas que no se pueden romper
+
+**1. La fecha es la de Argentina, nunca la de UTC.** El contenedor corre en UTC.
+`new Date().toISOString()` después de las 21:00 hora argentina ya devuelve el día siguiente:
+con eso, todo lo cargado de noche quedaba fuera de la pestaña "Hoy". El servidor usa `hoyLocal()`
+(zona `America/Argentina/Buenos_Aires`, configurable con `ZONA_HORARIA`) y el frontend arma la
+fecha con `getFullYear/getMonth/getDate`. **Nunca usar `toISOString()` para una fecha.**
+
+**2. Sin señal no se pierde nada.** El celular escribe el movimiento en una cola de
+`localStorage` *antes* de intentar mandarlo, y lo reintenta al volver la conexión, al abrir la app
+y a mano. Cada movimiento lleva un `clientId`: si el envío llegó pero la respuesta se perdió, el
+servidor devuelve el que ya tiene en vez de duplicarlo. El service worker (`public/sw.js`) existe
+para que la app abra sin conexión; sin él, la cola no serviría de nada.
+
+**3. El monto se teclea en pesos enteros.** Para $16.000 se teclea `16000`. Antes los dos últimos
+dígitos eran centavos y había que poner dos ceros de más en cada gasto: eso es fricción pura.
+
+## Datos
+
+`DATA_DIR/movimientos.json`, escritura atómica. Antes de la primera escritura de cada día se copia
+el archivo a `DATA_DIR/backups/movimientos-YYYY-MM-DD.json` y se guardan los últimos 30 días.
+
+## Tests
+
+```
+npm test
+```
+
+23 pruebas de punta a punta contra el servidor real, con un directorio de datos temporal
+(`test/api.test.js`). No tocan nunca los datos de verdad. **Corrimos esto antes de cada deploy.**
 
 ## Catálogos
 

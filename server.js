@@ -10,24 +10,78 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'movimientos.json');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 const PORT = process.env.PORT || 3000;
 const PIN = process.env.PIN || '1234';
 const READ_TOKEN = process.env.READ_TOKEN || 'cambiame';
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(BACKUP_DIR, { recursive: true });
 if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '[]', 'utf8');
+
+// --- Zona horaria ------------------------------------------------------
+// El contenedor corre en UTC; Emiliano vive en Argentina (UTC-3). Si el "hoy"
+// del servidor se calcula en UTC, todo lo que se carga despues de las 21:00
+// hora argentina cae en el dia siguiente y la pestaña "Hoy" aparece vacia.
+// Paso de verdad: los gastos del 04/09/2026 cargados 22:49 y 22:50 no se veian.
+const ZONA = process.env.ZONA_HORARIA || 'America/Argentina/Buenos_Aires';
+// Se arma la fecha pieza por pieza en vez de pedir un formato con nombre. Asi el
+// resultado es siempre YYYY-MM-DD, no importa que idiomas traiga el contenedor.
+const FMT_FECHA = new Intl.DateTimeFormat('en-US', {
+  timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit'
+});
+function hoyLocal() {
+  const p = {};
+  for (const parte of FMT_FECHA.formatToParts(new Date())) p[parte.type] = parte.value;
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+const ES_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+// Una fecha valida es la que el calendario reconoce: descarta 2026-02-31.
+function fechaValida(f) {
+  if (typeof f !== 'string' || !ES_FECHA.test(f)) return false;
+  const d = new Date(f + 'T12:00:00Z');
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === f;
+}
 
 // --- Persistencia ------------------------------------------------------
 // Escritura atomica: se escribe a un temporal y se renombra. Si se corta la luz
 // en el medio, el archivo bueno queda intacto en vez de quedar a la mitad.
 function leer() {
-  try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
-  catch { return []; }
+  try {
+    const datos = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    return Array.isArray(datos) ? datos : [];
+  } catch { return []; }
 }
+
+// Copia de seguridad: una por dia, antes de la primera escritura del dia.
+// Si algun dia el archivo se rompe o se borra algo por error, el dia anterior
+// entero sigue estando. Se guardan 30 dias y se tiran las mas viejas.
+const RETENER_BACKUPS = 30;
+function respaldarUnaVezPorDia() {
+  try {
+    const destino = path.join(BACKUP_DIR, `movimientos-${hoyLocal()}.json`);
+    if (fs.existsSync(destino)) return;
+    if (!fs.existsSync(DB_FILE)) return;
+    fs.copyFileSync(DB_FILE, destino);
+    const viejos = fs.readdirSync(BACKUP_DIR)
+      .filter(n => n.startsWith('movimientos-') && n.endsWith('.json'))
+      .sort();
+    for (const n of viejos.slice(0, Math.max(0, viejos.length - RETENER_BACKUPS))) {
+      fs.unlinkSync(path.join(BACKUP_DIR, n));
+    }
+  } catch (e) {
+    // Un backup que falla no puede impedir que Emiliano cargue un gasto.
+    console.error('No se pudo respaldar:', e.message);
+  }
+}
+
 function guardar(movs) {
+  respaldarUnaVezPorDia();
   const tmp = DB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(movs, null, 2), 'utf8');
   fs.renameSync(tmp, DB_FILE);
@@ -72,11 +126,29 @@ const CATALOGOS = {
   ]
 };
 
+// Solo se aceptan ids que existan en el catalogo. Lo que no esta, entra como
+// null: es preferible un gasto sin categoria a uno con una etiqueta inventada.
+const IDS_GASTO   = new Set(CATALOGOS.categoriasGasto.map(c => c.id));
+const IDS_INGRESO = new Set(CATALOGOS.categoriasIngreso.map(c => c.id));
+const IDS_MEDIO   = new Set(CATALOGOS.medios.map(m => m.id));
+
 // --- App ---------------------------------------------------------------
 const app = express();
 app.set('trust proxy', 1); // corre detras de Traefik
 app.use(express.json({ limit: '256kb' }));
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
+
+// El HTML y el service worker NO se cachean: si se cachean, despues de una
+// actualizacion el celular sigue abriendo la version vieja durante una hora.
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, ruta) {
+    const nombre = path.basename(ruta);
+    if (nombre === 'index.html' || nombre === 'sw.js' || nombre === 'manifest.json') {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
 
 // --- Freno de fuerza bruta ---------------------------------------------
 // Un PIN de 4 digitos son 10.000 combinaciones: sin freno, un script las
@@ -119,9 +191,9 @@ app.get('/api/catalogos', (req, res) => res.json(CATALOGOS));
 app.post('/api/login', (req, res) => {
   const ip = ipDe(req);
   if (bloqueado(ip)) return res.status(429).json({ ok: false, error: 'Demasiados intentos. Probá en 15 minutos.' });
-  if (!pinOk(req)) { anotarFallo(ip); return res.status(401).json({ ok: false }); }
+  if (!pinOk(req)) { anotarFallo(ip); return res.status(401).json({ ok: false, error: 'PIN incorrecto' }); }
   intentos.delete(ip);
-  res.json({ ok: true });
+  res.json({ ok: true, hoy: hoyLocal() });
 });
 
 // Cargar un movimiento
@@ -130,24 +202,39 @@ app.post('/api/login', (req, res) => {
 // con PATCH /api/mov/:id (campo categoriaAlex). Obligarlo a elegir en el momento
 // es exactamente la friccion que hizo que nunca usara el sistema anterior.
 app.post('/api/mov', exigirPin, (req, res) => {
-  const { tipo, monto, categoria, categoriaLibre, medio, detalle, fecha, obs } = req.body || {};
+  const { tipo, monto, categoria, categoriaLibre, medio, detalle, fecha, obs, clientId } = req.body || {};
   const m = Number(monto);
   if (!['gasto', 'ingreso'].includes(tipo)) return res.status(400).json({ error: 'tipo inválido' });
   if (!Number.isFinite(m) || m <= 0) return res.status(400).json({ error: 'monto inválido' });
+  if (fecha !== undefined && fecha !== null && fecha !== '' && !fechaValida(fecha)) {
+    return res.status(400).json({ error: 'fecha inválida' });
+  }
 
   const movs = leer();
+
+  // Sin señal el celular guarda el gasto y lo reintenta despues. Si el primer
+  // envio si llego pero la respuesta se perdio, el reintento traeria el mismo
+  // clientId: se devuelve el que ya existe en vez de duplicar el gasto.
+  const idCliente = typeof clientId === 'string' ? clientId.slice(0, 64) : '';
+  if (idCliente) {
+    const yaEsta = movs.find(x => x.clientId === idCliente);
+    if (yaEsta) return res.json({ ok: true, mov: yaEsta, duplicado: true });
+  }
+
+  const idsValidos = tipo === 'gasto' ? IDS_GASTO : IDS_INGRESO;
   const mov = {
     id: crypto.randomUUID(),
+    clientId: idCliente || null,
     tipo,
     monto: Math.round(m * 100) / 100,
-    categoria: categoria || null,                                   // la que toco, si toco alguna
-    categoriaLibre: (categoriaLibre || '').toString().slice(0, 60), // la que escribio a mano
+    categoria: idsValidos.has(categoria) ? categoria : null,        // la que toco, si toco alguna
+    categoriaLibre: (categoriaLibre || '').toString().trim().slice(0, 60), // la que escribio a mano
     categoriaAlex: null,                                            // la que pone Alex al analizar
-    medio: medio || null,
-    detalle: (detalle || '').toString().slice(0, 200),
-    obs: (obs || '').toString().slice(0, 500),
+    medio: IDS_MEDIO.has(medio) ? medio : null,
+    detalle: (detalle || '').toString().trim().slice(0, 200),
+    obs: (obs || '').toString().trim().slice(0, 500),
     // fecha del hecho (la que elige Emiliano) y sello de cuando se cargo
-    fecha: fecha || new Date().toISOString().slice(0, 10),
+    fecha: fecha || hoyLocal(),
     creado: new Date().toISOString()
   };
   movs.push(mov);
@@ -165,20 +252,53 @@ app.patch('/api/mov/:id', (req, res) => {
   const { categoriaAlex, obs, medio } = req.body || {};
   if (categoriaAlex !== undefined) mov.categoriaAlex = categoriaAlex;
   if (obs !== undefined) mov.obs = String(obs).slice(0, 500);
-  if (medio !== undefined) mov.medio = medio;
+  if (medio !== undefined) mov.medio = IDS_MEDIO.has(medio) ? medio : null;
   mov.revisado = new Date().toISOString();
   guardar(movs);
   res.json({ ok: true, mov });
 });
 
-// Lo cargado hoy, para revisar y borrar si se metio la pata
+// Ordena del mas reciente al mas viejo: primero por fecha del hecho, y dentro
+// del mismo dia por el momento en que se cargo.
+function masRecientePrimero(a, b) {
+  if (a.fecha !== b.fecha) return a.fecha < b.fecha ? 1 : -1;
+  return (a.creado || '') < (b.creado || '') ? 1 : -1;
+}
+const sumar = (movs, t) =>
+  Math.round(movs.filter(m => m.tipo === t).reduce((a, m) => a + m.monto, 0) * 100) / 100;
+
+// Lo cargado hoy, para revisar y borrar si se metio la pata.
+// "Hoy" es hoy en Argentina, no en UTC.
 app.get('/api/mov/hoy', exigirPin, (req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
-  res.json(leer().filter(m => m.fecha === hoy).reverse());
+  const hoy = hoyLocal();
+  const movs = leer().filter(m => m.fecha === hoy).sort(masRecientePrimero);
+  res.json({ fecha: hoy, movimientos: movs, totalGastos: sumar(movs, 'gasto'), totalIngresos: sumar(movs, 'ingreso') });
 });
 
-app.get('/api/mov/ultimos', exigirPin, (req, res) => {
-  res.json(leer().slice(-30).reverse());
+// Historial completo, agrupado por dia, del mas reciente al mas viejo.
+// Se agrupa aca y no en el celular: menos trabajo para el telefono.
+app.get('/api/mov/historial', exigirPin, (req, res) => {
+  const limiteDias = Math.min(Math.max(parseInt(req.query.dias, 10) || 90, 1), 3650);
+  const todos = leer().sort(masRecientePrimero);
+  const porDia = new Map();
+  for (const m of todos) {
+    if (!porDia.has(m.fecha)) porDia.set(m.fecha, []);
+    porDia.get(m.fecha).push(m);
+  }
+  const dias = [...porDia.entries()].slice(0, limiteDias).map(([fecha, movimientos]) => ({
+    fecha,
+    movimientos,
+    totalGastos: sumar(movimientos, 'gasto'),
+    totalIngresos: sumar(movimientos, 'ingreso')
+  }));
+  res.json({
+    hoy: hoyLocal(),
+    cantidad: todos.length,
+    diasMostrados: dias.length,
+    totalGastos: sumar(todos, 'gasto'),
+    totalIngresos: sumar(todos, 'ingreso'),
+    dias
+  });
 });
 
 app.delete('/api/mov/:id', exigirPin, (req, res) => {
@@ -200,23 +320,29 @@ app.get('/api/export', (req, res) => {
   const movs = leer();
   const desde = req.query.desde, hasta = req.query.hasta;
   const filtrados = movs.filter(m =>
-    (!desde || m.fecha >= desde) && (!hasta || m.fecha <= hasta));
-  const total = t => filtrados.filter(m => m.tipo === t)
-    .reduce((a, m) => a + m.monto, 0);
+    (!desde || m.fecha >= desde) && (!hasta || m.fecha <= hasta)).sort(masRecientePrimero);
   // "sinClasificar" es la bandeja de entrada de Alex: lo que Emiliano anoto
   // sin decidir categoria, o categorizo a mano con una etiqueta nueva.
   const sinClasificar = filtrados.filter(m =>
     !m.categoriaAlex && (!m.categoria || m.categoriaLibre));
   res.json({
     generado: new Date().toISOString(),
+    hoy: hoyLocal(),
     cantidad: filtrados.length,
-    totalGastos: Math.round(total('gasto') * 100) / 100,
-    totalIngresos: Math.round(total('ingreso') * 100) / 100,
+    totalGastos: sumar(filtrados, 'gasto'),
+    totalIngresos: sumar(filtrados, 'ingreso'),
     sinClasificar: sinClasificar.length,
     movimientos: filtrados
   });
 });
 
-app.get('/api/salud', (req, res) => res.json({ ok: true, movimientos: leer().length }));
+app.get('/api/salud', (req, res) =>
+  res.json({ ok: true, movimientos: leer().length, hoy: hoyLocal(), zona: ZONA }));
 
-app.listen(PORT, () => console.log(`Gastos escuchando en :${PORT}`));
+// Solo se levanta el servidor si este archivo se ejecuta directo. Asi los tests
+// pueden importar la app y probarla sin ocupar el puerto.
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename)) {
+  app.listen(PORT, () => console.log(`Gastos escuchando en :${PORT} · zona ${ZONA}`));
+}
+
+export { app, hoyLocal, fechaValida, CATALOGOS, DB_FILE };
